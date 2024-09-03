@@ -1,0 +1,42 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*.*.*-dev'
+      - 'v*.*.*-test'
+      - 'v*.*.*-stage'
+      - 'v*.*.*-prod'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Linting
+      run: flake8 app/
+
+    - name: Build Docker image
+      run: docker build -t llm-inference-pipeline:${{ github.ref_name }} .
+
+    - name: Run Docker container
+      run: docker run -d -p 8000:8000 llm-inference-pipeline:${{ github.ref_name }}
+
+    - name: Run tests
+      run: |
+        curl -X POST "http://localhost:8000/infer" -H "Content-Type: application/json" -d '{"prompt": "Hello, LLM!"}'
+
+    - name: Deploy to environment
+      if: github.ref_name == 'v*.*.*-prod'
+      run: echo "Deploying to production environment"
