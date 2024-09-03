@@ -3,6 +3,8 @@ from app.model import infer
 
 app = FastAPI()
 
+
+
 @app.post("/infer")
 def infer_llm(prompt: str):
     response = infer(prompt)
