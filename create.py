@@ -99,7 +99,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
     # Write the content for `requirements.txt`
     with open(os.path.join(base_path, "requirements.txt"), 'w') as f:
-        f.write("fastapi\nuvicorn\n")
+        f.write("fastapi\nuvicorn\nflake8")
 
     # Write the content for `ci-cd.yml` in the root directory
     with open(os.path.join(base_path, "ci-cd.yml"), 'w') as f:
@@ -148,7 +148,7 @@ jobs:
       run: docker run -d --name llm_container -p 8000:8000 llm-inference-pipeline:${{ github.ref_name }}
 
     - name: Wait for the service to start
-      run: sleep 20  # Increased sleep time to 20 seconds
+      run: sleep 10  # Increased sleep time to 20 seconds
 
     - name: Test API endpoint
       run: |
