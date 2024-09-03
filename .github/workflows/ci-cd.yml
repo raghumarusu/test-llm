@@ -31,9 +31,9 @@ jobs:
       run: docker build -t llm-inference-pipeline:${{ github.ref_name }} .
 
     - name: Run Docker container
-      run: docker run -d -p 8000:8000 llm-inference-pipeline:${{ github.ref_name }}
+      run: docker run -d -p 80:80 llm-inference-pipeline:${{ github.ref_name }}
     - name: wait for server to start
-      run: sleep 120
+      run: sleep 50
     - name: Run tests
       run: |
         curl -X POST "http://localhost:8000/infer" -H "Content-Type: application/json" -d '{"prompt": "Hello, LLM!"}'
