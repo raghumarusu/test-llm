@@ -1,0 +1,102 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*.*.*-dev'
+      - 'v*.*.*-test'
+      - 'v*.*.*-stage'
+      - 'v*.*.*-prod'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # Can be set to macos-latest if needed
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Linting
+      run: flake8 app/
+
+    - name: Stop any running container on port 8000
+      run: |
+        existing_container=$(docker ps -q --filter "publish=8000")
+        if [ -n "$existing_container" ]; then
+          echo "Stopping container running on port 8000..."
+          docker stop $existing_container
+          docker rm $existing_container
+        fi
+
+    - name: Build Docker image
+      run: docker build -t llm-inference-pipeline:${{ github.ref_name }} .
+
+    - name: Run Docker container
+      run: docker run -d --name llm_container -p 8000:8000 llm-inference-pipeline:${{ github.ref_name }}
+
+    - name: Wait for the service to start
+      run: sleep 20  # Increased sleep time to 20 seconds
+
+    - name: Test API endpoint
+      run: |
+        curl -X POST "http://localhost:8000/infer" -H "Content-Type: application/json" -d '{"prompt": "Hello, LLM!"}'
+
+    - name: Check Docker container logs if curl fails
+      if: failure()
+      run: docker logs llm_container
+
+    - name: Stop and remove Docker container
+      run: |
+        docker stop llm_container
+        docker rm llm_container
+
+    - name: Deploy to environment
+      if: github.ref_name == 'v*.*.*-prod'
+      run: echo "Deploying to production environment"
+
+    # Lab server deployment
+
+    # The following steps build and save the Docker image directly on a remote server
+    # - name: Build Docker image on remote server
+    #   run: |
+    #     ssh user@remote_server "
+    #       cd /path/to/project &&
+    #       docker build -t llm-inference-pipeline:${{ github.ref_name }} . &&
+    #       docker save -o /path/to/save/location/llm-inference-pipeline-${{ github.ref_name }}.tar llm-inference-pipeline:${{ github.ref_name }}"
+    #     echo "Docker image built and saved on remote server."
+
+    # - name: Deploy Docker image on remote server
+    #   run: |
+    #     ssh user@remote_server "
+    #       docker load -i /path/to/save/location/llm-inference-pipeline-${{ github.ref_name }}.tar &&
+    #       docker run -d --name llm_container -p 8000:8000 llm-inference-pipeline:${{ github.ref_name }}"
+    #     echo "Application deployed on remote server."
+
+
+	# AWS Deployment
+
+    # The following steps build and save the Docker image directly on an AWS EC2 instance .
+
+    # - name: Build Docker image on AWS EC2
+    #   run: |
+    #     ssh -i /path/to/your/aws-ec2-key.pem ec2-user@your-ec2-public-ip "
+    #       cd /path/to/project &&
+    #       docker build -t llm-inference-pipeline:${{ github.ref_name }} . &&
+    #       docker save -o /path/to/save/location/llm-inference-pipeline-${{ github.ref_name }}.tar llm-inference-pipeline:${{ github.ref_name }}"
+    #     echo "Docker image built and saved on AWS EC2 instance."
+
+    # - name: Deploy Docker image on AWS EC2
+    #   run: |
+    #     ssh -i /path/to/your/aws-ec2-key.pem ec2-user@your-ec2-public-ip "
+    #       docker load -i /path/to/save/location/llm-inference-pipeline-${{ github.ref_name }}.tar &&
+    #       docker run -d --name llm_container -p 8000:8000 llm-inference-pipeline:${{ github.ref_name }}"
+    #     echo "Application deployed on AWS EC2 instance."
+

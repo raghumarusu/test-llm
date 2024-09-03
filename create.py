@@ -166,6 +166,45 @@ jobs:
     - name: Deploy to environment
       if: github.ref_name == 'v*.*.*-prod'
       run: echo "Deploying to production environment"
+
+    # Lab server deployment
+
+    # The following steps build and save the Docker image directly on a remote server
+    # - name: Build Docker image on remote server
+    #   run: |
+    #     ssh user@remote_server "
+    #       cd /path/to/project &&
+    #       docker build -t llm-inference-pipeline:${{ github.ref_name }} . &&
+    #       docker save -o /path/to/save/location/llm-inference-pipeline-${{ github.ref_name }}.tar llm-inference-pipeline:${{ github.ref_name }}"
+    #     echo "Docker image built and saved on remote server."
+
+    # - name: Deploy Docker image on remote server
+    #   run: |
+    #     ssh user@remote_server "
+    #       docker load -i /path/to/save/location/llm-inference-pipeline-${{ github.ref_name }}.tar &&
+    #       docker run -d --name llm_container -p 8000:8000 llm-inference-pipeline:${{ github.ref_name }}"
+    #     echo "Application deployed on remote server."
+
+
+	# AWS Deployment
+
+    # The following steps build and save the Docker image directly on an AWS EC2 instance .
+
+    # - name: Build Docker image on AWS EC2
+    #   run: |
+    #     ssh -i /path/to/your/aws-ec2-key.pem ec2-user@your-ec2-public-ip "
+    #       cd /path/to/project &&
+    #       docker build -t llm-inference-pipeline:${{ github.ref_name }} . &&
+    #       docker save -o /path/to/save/location/llm-inference-pipeline-${{ github.ref_name }}.tar llm-inference-pipeline:${{ github.ref_name }}"
+    #     echo "Docker image built and saved on AWS EC2 instance."
+
+    # - name: Deploy Docker image on AWS EC2
+    #   run: |
+    #     ssh -i /path/to/your/aws-ec2-key.pem ec2-user@your-ec2-public-ip "
+    #       docker load -i /path/to/save/location/llm-inference-pipeline-${{ github.ref_name }}.tar &&
+    #       docker run -d --name llm_container -p 8000:8000 llm-inference-pipeline:${{ github.ref_name }}"
+    #     echo "Application deployed on AWS EC2 instance."
+
 """)
 
 # Create the directories and files
