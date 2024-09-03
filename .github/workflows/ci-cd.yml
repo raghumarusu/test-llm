@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Can be set to macos-latest if needed
 
     steps:
     - name: Checkout code
@@ -27,17 +27,34 @@ jobs:
     - name: Linting
       run: flake8 app/
 
+    - name: Stop any running container on port 8000
+      run: |
+        existing_container=$(docker ps -q --filter "publish=8000")
+        if [ -n "$existing_container" ]; then
+          echo "Stopping container running on port 8000..."
+          docker stop $existing_container
+          docker rm $existing_container
+        fi
+
     - name: Build Docker image
       run: docker build -t llm-inference-pipeline:${{ github.ref_name }} .
 
     - name: Run Docker container
-      run: docker run -d -p 80:80 llm-inference-pipeline:${{ github.ref_name }}
-    - name: wait for server to start
-      run: sleep 50
-    - name: Run tests
+      run: docker run -d --name llm_container -p 8000:8000 llm-inference-pipeline:${{ github.ref_name }}
+
+    - name: Wait for the service to start
+      run: sleep 100  # Adjust the sleep time as necessary to allow the service to start
+
+    - name: Test API endpoint
       run: |
-        curl -X POST "http://localhost:80/infer" -H "Content-Type: application/json" -d '{"prompt": "Hello, LLM!"}'
+        curl -X POST "http://localhost:8000/infer" -H "Content-Type: application/json" -d '{"prompt": "Hello, LLM!"}'
+
+    - name: Stop and remove Docker container
+      run: |
+        docker stop llm_container
+        docker rm llm_container
 
     - name: Deploy to environment
       if: github.ref_name == 'v*.*.*-prod'
       run: echo "Deploying to production environment"
+
