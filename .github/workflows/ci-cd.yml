@@ -43,7 +43,7 @@ jobs:
       run: docker run -d --name llm_container -p 8000:8000 llm-inference-pipeline:${{ github.ref_name }}
 
     - name: Wait for the service to start
-      run: sleep 10  # Increased sleep time to 20 seconds
+      run: sleep 60  # Increased sleep time to 20 seconds
 
     - name: Test API endpoint
       run: |
