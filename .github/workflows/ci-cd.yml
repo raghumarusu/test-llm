@@ -36,7 +36,7 @@ jobs:
       run: sleep 50
     - name: Run tests
       run: |
-        curl -X POST "http://localhost:8000/infer" -H "Content-Type: application/json" -d '{"prompt": "Hello, LLM!"}'
+        curl -X POST "http://localhost:80/infer" -H "Content-Type: application/json" -d '{"prompt": "Hello, LLM!"}'
 
     - name: Deploy to environment
       if: github.ref_name == 'v*.*.*-prod'
