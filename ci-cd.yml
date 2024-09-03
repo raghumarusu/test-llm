@@ -43,11 +43,15 @@ jobs:
       run: docker run -d --name llm_container -p 8000:8000 llm-inference-pipeline:${{ github.ref_name }}
 
     - name: Wait for the service to start
-      run: sleep 100  # Adjust the sleep time as necessary to allow the service to start
+      run: sleep 20  # Increased sleep time to 20 seconds
 
     - name: Test API endpoint
       run: |
         curl -X POST "http://localhost:8000/infer" -H "Content-Type: application/json" -d '{"prompt": "Hello, LLM!"}'
+
+    - name: Check Docker container logs if curl fails
+      if: failure()
+      run: docker logs llm_container
 
     - name: Stop and remove Docker container
       run: |
@@ -57,4 +61,3 @@ jobs:
     - name: Deploy to environment
       if: github.ref_name == 'v*.*.*-prod'
       run: echo "Deploying to production environment"
-
