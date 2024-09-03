@@ -25,7 +25,7 @@ structure = {
         "main.py",
         "model.py"
     ],
-    "docker": ["Dockerfile"],
+    "Dockerfile": None,
     "requirements.txt": None,
 }
 
@@ -74,7 +74,7 @@ def infer_llm(prompt: str):
 """)
 
     # Write the content for `Dockerfile`
-    with open(os.path.join(base_path, "docker/Dockerfile"), 'w') as f:
+    with open(os.path.join(base_path, "Dockerfile"), 'w') as f:
         f.write("""# Use an official Python runtime as a parent image
 FROM python:3.9-slim
 
