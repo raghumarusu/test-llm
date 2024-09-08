@@ -1,127 +1,181 @@
 import os
-import shutil
 
 def create_project_structure(base_name="fox_rag_template"):
-    # Remove the existing folder if it exists
-    if os.path.exists(base_name):
-        shutil.rmtree(base_name)
-
-    # Define the folder structure
+    # Define folder structure
     folders = [
         f"{base_name}/config",
-        f"{base_name}/llm_pipeline",
         f"{base_name}/data_shared",
+        f"{base_name}/llm_pipeline",
         f"{base_name}/logs"
     ]
     
-    # Define files to be created
+    # Define files and their content
     files = {
-        f"{base_name}/config/config.yml": "default_config_data",
-        f"{base_name}/Dockerfile": "FROM python:3.9-slim\n# Dockerfile content here",
-        f"{base_name}/.gitignore": "*.pyc\n__pycache__/\nenv/\n*.log",
-        f"{base_name}/.env": "OPENAI_API_VERSION=\nAZURE_OPENAI_ENDPOINT=\nAZURE_OPENAI_API_KEY=",
-        f"{base_name}/requirements.txt": "fastapi\ntransformers\ntorch\nuvicorn\nPyYAML",
-        f"{base_name}/setup.py": setup_py_template(),
+        f"{base_name}/config/config.yml": """
+gpt_api:
+  version: "2024-09"
+  api_endpoint: "https://api.openai.com/v1/"
+  deployment: "production"
+  tokenizers_parallelism: "true"
+  cuda_visible_devices: "0"
+        """,
+        f"{base_name}/Dockerfile": """
+# Dockerfile for fox_rag_template
+
+FROM python:3.9-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+RUN pip install -r requirements.txt
+
+COPY . .
+
+CMD ["uvicorn", "fast_api:app", "--host", "0.0.0.0", "--port", "8000"]
+        """,
+        f"{base_name}/fast_api.py": """
+from fastapi import FastAPI
+from llm_pipeline.utils import load_config, set_api_environment_variables
+from llm_pipeline.search import complete_search_with_id
+from llm_pipeline.llm_answer import generate_answer_with_LLM_Intent
+
+app = FastAPI()
+
+# Load Config
+config = load_config()
+
+# Set Environment Variables
+set_api_environment_variables(config)
+
+@app.post("/")
+async def predict(query: str, intent: str = None):
+    # Perform search based on the query
+    search_results = complete_search_with_id(query)
+    
+    # Generate final answer using the LLM based on reranked results
+    final_answer = generate_answer_with_LLM_Intent(search_results)
+    
+    return {"answer": final_answer}
+        """,
+        f"{base_name}/.env": """
+OPENAI_API_VERSION="v1"
+AZURE_OPENAI_ENDPOINT="https://api.azure.com"
+AZURE_OPENAI_API_KEY="your_api_key_here"
+        """,
+        f"{base_name}/.gitignore": """
+# Python
+*.pyc
+__pycache__/
+
+# Environment
+.env
+
+# Logs
+/logs/
+
+# Docker
+docker-compose.yml
+        """,
         f"{base_name}/llm_pipeline/__init__.py": "",
-        f"{base_name}/llm_pipeline/intent_mapping.py": "def map_intent():\n    pass",
-        f"{base_name}/llm_pipeline/search.py": "def search():\n    pass",
-        f"{base_name}/llm_pipeline/semantic_search.py": "def semantic_search():\n    pass",
-        f"{base_name}/llm_pipeline/reranker.py": "def reranker():\n    pass",
-        f"{base_name}/llm_pipeline/llm_answer.py": "def llm_answer():\n    pass",
-        f"{base_name}/llm_pipeline/utils.py": utils_py_template(),
-        f"{base_name}/llm_pipeline/logging.py": logging_py_template(),
-        f"{base_name}/fast_api.py": fastapi_py_template(),
-    }
+        f"{base_name}/llm_pipeline/embeddings.py": """
+def define_embed_model():
+    # Code to define and return embedding model
+    pass
 
-    # Create all directories
-    for folder in folders:
-        os.makedirs(folder, exist_ok=True)
+def read_in_vector_db():
+    # Code to load vector database
+    pass
 
-    # Create all files with their content
-    for file_path, file_content in files.items():
-        with open(file_path, 'w') as file:
-            file.write(file_content)
+def read_in_doc_store():
+    # Code to load document store
+    pass
+        """,
+        f"{base_name}/llm_pipeline/search.py": """
+def complete_search_with_id(query_list, top_k=40, weight=0.6):
+    # Code for complete search (vector and keyword-based)
+    pass
 
-    print(f"Project structure for {base_name} has been created successfully.")
+def retrieve_documents_rag_fusion():
+    # Code for RAG fusion
+    pass
+        """,
+        f"{base_name}/llm_pipeline/reranker.py": """
+def reranking(df_ss):
+    # Code for reranking
+    pass
 
+def combine_child_parent(df):
+    # Code to combine parent-child documents
+    pass
+        """,
+        f"{base_name}/llm_pipeline/llm_answer.py": """
+def generate_answer_with_LLM_Intent(df_reranked):
+    # Code to generate an answer using the LLM
+    pass
+        """,
+        f"{base_name}/llm_pipeline/logging.py": """
+def search_logging(df_ss, transformed_queries, task, intent):
+    # Code for logging search events
+    pass
 
-def setup_py_template():
-    return """
-from setuptools import setup, find_packages
-
-setup(
-    name='fox_rag_template',
-    version='1.0.0',
-    author='Your Name',
-    author_email='your.email@example.com',
-    description='RAG LLM Pipeline Project',
-    packages=find_packages(),
-    include_package_data=True,
-    install_requires=[
-        'fastapi',
-        'uvicorn',
-        'torch',
-        'transformers',
-        'PyYAML',
-    ],
-    python_requires='>=3.8',
-)
-"""
-
-def utils_py_template():
-    return """
+def reranker_logging(df_reranked):
+    # Code for logging reranking events
+    pass
+        """,
+        f"{base_name}/llm_pipeline/utils.py": """
 import os
 import yaml
 
 def load_config(path="config/config.yml"):
+    # Load configuration from YAML file
     with open(path, 'r') as file:
         return yaml.safe_load(file)
 
 def set_api_environment_variables(config):
+    # Set environment variables for sensitive information
     os.environ["TOKENIZERS_PARALLELISM"] = config["gpt_api"]["tokenizers_parallelism"]
     os.environ["CUDA_VISIBLE_DEVICES"] = config["gpt_api"]["cuda_visible_devices"]
     os.environ['OPENAI_API_VERSION'] = os.getenv("OPENAI_API_VERSION")
     os.environ['AZURE_OPENAI_ENDPOINT'] = os.getenv("AZURE_OPENAI_ENDPOINT")
     os.environ["AZURE_OPENAI_API_KEY"] = os.getenv("AZURE_OPENAI_API_KEY")
-"""
+        """,
+        f"{base_name}/logs/.gitkeep": "",
+        f"{base_name}/requirements.txt": """
+fastapi
+uvicorn
+openai
+torch
+PyYAML
+        """,
+        f"{base_name}/setup.py": """
+from setuptools import setup, find_packages
 
-def logging_py_template():
-    return """
-import logging
+setup(
+    name="fox_rag_template",
+    version="1.0",
+    packages=find_packages(),
+    install_requires=[
+        'fastapi',
+        'uvicorn',
+        'openai',
+        'torch',
+        'PyYAML'
+    ],
+)
+        """
+    }
+    
+    # Create directories
+    for folder in folders:
+        os.makedirs(folder, exist_ok=True)
+    
+    # Create files with content
+    for file_path, content in files.items():
+        with open(file_path, 'w') as file:
+            file.write(content.strip())
+    
+    print(f"Project structure for {base_name} created successfully.")
 
-def setup_logging():
-    logger = logging.getLogger("my-logger")
-    logger.setLevel(logging.DEBUG)
-    handler = logging.FileHandler('logs/app.log')
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    return logger
-"""
-
-def fastapi_py_template():
-    return """
-from fastapi import FastAPI
-from llm_pipeline import search, semantic_search, reranker, llm_answer
-
-app = FastAPI()
-
-@app.post("/search")
-def search_endpoint(query: str):
-    return search.search(query)
-
-@app.post("/semantic_search")
-def semantic_search_endpoint(query: str):
-    return semantic_search.semantic_search(query)
-
-@app.post("/rerank")
-def rerank_endpoint(query: str):
-    return reranker.reranker(query)
-
-@app.post("/llm_answer")
-def llm_answer_endpoint(query: str):
-    return llm_answer.llm_answer(query)
-"""
-
-if __name__ == "__main__":
-    create_project_structure()
+# Run the function to create the project structure
+create_project_structure()
